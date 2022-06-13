@@ -652,9 +652,9 @@ bot.on("message", msg => {
     // farm game commands
     //#region 
     if (msg.content === prefix + "inv") {
-        inventoryValue = farmBaseSellPrice.wheat * inventory.wheat;
-        inventoryValue = (farmBaseSellPrice.wheat * inventory.wheat) + (farmBaseSellPrice.carrots * inventory.carrots);
-        inventoryValue = (farmBaseSellPrice.wheat * inventory.wheat) + (farmBaseSellPrice.carrots * inventory.carrots) + (farmBaseSellPrice.potatoes * inventory.potatoes);
+        inventoryValue = plantBaseSellPrice.wheat * inventory.wheat;
+        inventoryValue = (plantBaseSellPrice.wheat * inventory.wheat) + (plantBaseSellPrice.carrots * inventory.carrots);
+        inventoryValue = (plantBaseSellPrice.wheat * inventory.wheat) + (plantBaseSellPrice.carrots * inventory.carrots) + (plantBaseSellPrice.potatoes * inventory.potatoes);
 
         const invEmbed = new MessageEmbed()
             .setColor("#0099ff")
@@ -664,7 +664,7 @@ bot.on("message", msg => {
                 {
                     name: 
                         sender.username + "'s Info", value: "Balance: __**$" + userBalance + "**__\n" +
-                        "**Level " + level + "**, " + currentXP + "/" + XPReq + " XP to next level.\n"
+                        "**Level " + level + "**, " + Math.floor(currentXP) + "/" + Math.round(XPReq) + " XP to next level.\n"
                 },
                 {
                     name: 
@@ -688,9 +688,15 @@ bot.on("message", msg => {
             XPGained = wheatRoll * plantBaseXP.wheat;
             inventory.wheat += wheatRoll;
             currentXP += XPGained;
+            userData[JSONTitle].farmInventory = {wheat: 0, carrots: 0, potatoes: 0};
+            userData[JSONTitle].farmCurrentXP = currentXP;
             if (currentXP >= XPReq) {
+                currentXP -= XPReq;
                 level++;
                 XPReq = 100 * Math.pow(1.15, level);
+                userData[JSONTitle].farmCurrentXP = currentXP;
+                userData[JSONTitle].farmLevel = level;
+                userData[JSONTitle].farmXPReq = XPReq;
             }
             wheatRoll + " Wheat\n" + "+" + XPGained + "XP!"
         } else if (numRoll == 1) {
@@ -698,9 +704,15 @@ bot.on("message", msg => {
             inventory.wheat += wheatRoll;
             inventory.carrots += carrotsRoll;
             currentXP += XPGained;
+            userData[JSONTitle].farmInventory = {wheat: 0, carrots: 0, potatoes: 0};
+            userData[JSONTitle].farmCurrentXP = currentXP;
             if (currentXP >= XPReq) {
+                currentXP -= XPReq;
                 level++;
                 XPReq = 100 * Math.pow(1.15, level);
+                userData[JSONTitle].farmCurrentXP = currentXP;
+                userData[JSONTitle].farmLevel = level;
+                userData[JSONTitle].farmXPReq = XPReq;
             }
             text = wheatRoll + " Wheat\n" + carrotsRoll + " Carrots\n" + "+" + XPGained + "XP!"
         } else {
@@ -709,12 +721,22 @@ bot.on("message", msg => {
             inventory.carrots += carrotsRoll;
             inventory.potatoes += potatoesRoll;
             currentXP += XPGained;
+            userData[JSONTitle].farmInventory = {wheat: 0, carrots: 0, potatoes: 0};
+            userData[JSONTitle].farmCurrentXP = currentXP;
             if (currentXP >= XPReq) {
+                currentXP -= XPReq;
                 level++;
                 XPReq = 100 * Math.pow(1.15, level);
+                userData[JSONTitle].farmCurrentXP = currentXP;
+                userData[JSONTitle].farmLevel = level;
+                userData[JSONTitle].farmXPReq = XPReq;
             }
-            text = wheatRoll + " Wheat\n" + carrotsRoll + " Carrots\n" + potatoesRoll + " Potatoes\n" + "+" + XPGained + "XP!"
+            text = wheatRoll + " Wheat\n" + carrotsRoll + " Carrots\n" + potatoesRoll + " Potatoes\n" + "+" + XPGained + " XP!"
         }
+
+        fs.writeFile("Storage/userData.JSON", JSON.stringify(userData), (err) => {
+            if (err) console.error(err);
+        })
 
         const farmEmbed = new MessageEmbed()
             .setColor("#0099ff")
