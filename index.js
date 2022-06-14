@@ -84,14 +84,18 @@ bot.on("message", msg => {
     let plantBaseSellPrice = userData[JSONTitle].farmBaseSellPrice;
     if (!plantBaseSellPrice) plantBaseSellPrice = {wheat: 1, carrots: 2, potatoes: 3 };
 
+    let totalMoney = userData[JSONTitle].farmTotalMoney;
+    if (!totalMoney) totalMoney = 0;
+
 
     userData[JSONTitle].farmLevel = level;
     userData[JSONTitle].farmCurrentXP = currentXP;
     userData[JSONTitle].farmXPReq = XPReq;
-    userData[JSONTitle].farmInventory = {wheat: 0, carrots: 0, potatoes: 0};
+    userData[JSONTitle].farmInventory = inventory;
     userData[JSONTitle].farmInventoryValue = inventoryValue;
-    userData[JSONTitle].farmPlantMax = {wheat: 10, carrots: 10, potatoes: 10 };
-    userData[JSONTitle].farmBaseXP = {wheat: 1, carrots: 2, potatoes: 3 };
+    userData[JSONTitle].farmPlantMax = plantMax;
+    userData[JSONTitle].farmBaseXP = plantBaseXP;
+
 
 
     fs.writeFile("Storage/userData.JSON", JSON.stringify(userData), (err) => {
@@ -646,24 +650,89 @@ bot.on("message", msg => {
             msg.channel.send("**" + msg.author.username + "**, you don't have enough money in your balance!"); 
             return;
         }
+
+        let userHand = {};
+
+        for (let i = 1; i < 6; i++) {
+            userHand[i] = Math.floor(Math.random() * (11 - 2) + 2); 
+            if (i > 2) userHand[i] = 0;
+        }
+
+        let userHandSum = 0;
+
+        for (let i = 1; i < 6; i++) {
+            userHandSum += userHand[i];
+        }
+
+        let computerHand = {};
+
+        for (let i = 1; i < 6; i++) {
+            computerHand[i] = Math.floor(Math.random() * (11 - 2) + 2); 
+            if (i > 1) computerHand[i] = 0;
+        }
+
+        let computerHandSum = 0;
+
+        for (let i = 1; i < 6; i++) {
+            computerHandSum += computerHand[i];
+        }
+
+        const InProgressBJEmbed = new MessageEmbed()
+            .setColor("#0099ff")
+            .setAuthor({name: "**" + sender.username + ", you bet " + betAmount + "** to play Blackjack", iconURL: sender.avatarURL()})
+            .addFields(
+                { name: "**Dealer [**" + computerHandSum + "+?]", value: JSON.stringify(computerHand) },
+                { name: "**" + sender.username + " [**" + userHandSum + "]", value: JSON.stringify(userHand) }
+            )
+            .setFooter({ text: "Game is in progress..." });
+
+        const userWinBJEmbed = new MessageEmbed()
+            .setColor("#0099ff")
+            .setAuthor({name: "**" + sender.username + ", you bet " + betAmount + "** to play Blackjack", iconURL: sender.avatarURL()})
+            .addFields(
+                { name: "**Dealer [**" + computerHandSum + "]", value: JSON.stringify(computerHand) },
+                { name: "**" + sender.username + " [**" + userHandSum + "]", value: JSON.stringify(userHand) }
+            )
+            .setFooter({ text: "You won **$" + betAmount + "**!" });
+
+        const userLostBJEmbed = new MessageEmbed()
+            .setColor("#0099ff")
+            .setAuthor({name: "**" + sender.username + ", you bet " + betAmount + "** to play Blackjack", iconURL: sender.avatarURL()})
+            .addFields(
+                { name: "**Dealer [**" + computerHandSum + "]", value: JSON.stringify(computerHand) },
+                { name: "**" + sender.username + " [**" + userHandSum + "]", value: JSON.stringify(userHand) }
+            )
+            .setFooter({ text: "You lost **$" + betAmount + "** :(" });
+
+
+        msg.channel.send(InProgressBJEmbed);
+
+
+        if (userHandSum == 21) {
+            msg.channel.send(userWinBJEmbed);  
+            return;
+        } else if (userHandSum > 21) {
+            msg.channel.send(userLostBJEmbed);  
+            return;
+        }
+
     }
     //#endregion
 
     // farm game commands
     //#region 
     if (msg.content === prefix + "inv") {
-        inventoryValue = plantBaseSellPrice.wheat * inventory.wheat;
-        inventoryValue = (plantBaseSellPrice.wheat * inventory.wheat) + (plantBaseSellPrice.carrots * inventory.carrots);
         inventoryValue = (plantBaseSellPrice.wheat * inventory.wheat) + (plantBaseSellPrice.carrots * inventory.carrots) + (plantBaseSellPrice.potatoes * inventory.potatoes);
-
+        fame = Math.floor(150 * Math.sqrt(totalMoney/1e4));
         const invEmbed = new MessageEmbed()
             .setColor("#0099ff")
-            .setTitle("Game Name")
+            .setTitle("Farming Simulator")
             .setThumbnail(sender.avatarURL())
             .addFields(
                 {
                     name: 
                         sender.username + "'s Info", value: "Balance: __**$" + userBalance + "**__\n" +
+                        "Fame: " + fame + "\n" +
                         "**Level " + level + "**, " + Math.floor(currentXP) + "/" + Math.round(XPReq) + " XP to next level.\n"
                 },
                 {
@@ -688,7 +757,7 @@ bot.on("message", msg => {
             XPGained = wheatRoll * plantBaseXP.wheat;
             inventory.wheat += wheatRoll;
             currentXP += XPGained;
-            userData[JSONTitle].farmInventory = {wheat: 0, carrots: 0, potatoes: 0};
+            userData[JSONTitle].farmInventory = inventory;
             userData[JSONTitle].farmCurrentXP = currentXP;
             if (currentXP >= XPReq) {
                 currentXP -= XPReq;
@@ -698,13 +767,13 @@ bot.on("message", msg => {
                 userData[JSONTitle].farmLevel = level;
                 userData[JSONTitle].farmXPReq = XPReq;
             }
-            wheatRoll + " Wheat\n" + "+" + XPGained + "XP!"
+            text = wheatRoll + " Wheat\n +" + XPGained + " XP!"
         } else if (numRoll == 1) {
             XPGained = (wheatRoll * plantBaseXP.wheat) + (carrotsRoll * plantBaseXP.carrots);
             inventory.wheat += wheatRoll;
             inventory.carrots += carrotsRoll;
             currentXP += XPGained;
-            userData[JSONTitle].farmInventory = {wheat: 0, carrots: 0, potatoes: 0};
+            userData[JSONTitle].farmInventory = inventory;
             userData[JSONTitle].farmCurrentXP = currentXP;
             if (currentXP >= XPReq) {
                 currentXP -= XPReq;
@@ -714,14 +783,14 @@ bot.on("message", msg => {
                 userData[JSONTitle].farmLevel = level;
                 userData[JSONTitle].farmXPReq = XPReq;
             }
-            text = wheatRoll + " Wheat\n" + carrotsRoll + " Carrots\n" + "+" + XPGained + "XP!"
+            text = wheatRoll + " Wheat\n" + carrotsRoll + " Carrots\n+" + XPGained + " XP!"
         } else {
             XPGained = (wheatRoll * plantBaseXP.wheat) + (carrotsRoll * plantBaseXP.carrots) + (potatoesRoll * plantBaseXP.potatoes);
             inventory.wheat += wheatRoll;
             inventory.carrots += carrotsRoll;
             inventory.potatoes += potatoesRoll;
             currentXP += XPGained;
-            userData[JSONTitle].farmInventory = {wheat: 0, carrots: 0, potatoes: 0};
+            userData[JSONTitle].farmInventory = inventory;
             userData[JSONTitle].farmCurrentXP = currentXP;
             if (currentXP >= XPReq) {
                 currentXP -= XPReq;
@@ -740,12 +809,49 @@ bot.on("message", msg => {
 
         const farmEmbed = new MessageEmbed()
             .setColor("#0099ff")
-            .setTitle("Game Name")
+            .setTitle("Farming Simulator")
             .setThumbnail(sender.avatarURL())
             .addFields(
-                { name: "**You farmed**:", value: text }
+                { name: "**You gained**:", value: text }
             );
         msg.channel.send(farmEmbed);
+    }
+
+    if (msg.content === prefix + "sell") {
+        inventoryValue = (plantBaseSellPrice.wheat * inventory.wheat) + (plantBaseSellPrice.carrots * inventory.carrots) + (plantBaseSellPrice.potatoes * inventory.potatoes);
+
+        if (inventoryValue == 0) {
+            msg.channel.send("You have no produce to sell! Do ?farm to get some produce!");
+            return;
+        }
+
+        if (inventoryValue > 0) {
+            userBalance += inventoryValue;
+            totalMoney += inventoryValue;
+
+            const sellEmbed = new MessageEmbed()
+                .setColor("#0099ff")
+                .setTitle("Farming Simulator")
+                .setThumbnail(sender.avatarURL())
+                .addFields(
+                    { name: "Produce Sold!", value: "You sold your produce for __**$" + inventoryValue + "**__!\n" + "You now have __**$" + userBalance + "**__!" },
+                );
+            msg.channel.send(sellEmbed);
+
+            inventoryValue = 0;
+            inventory.wheat = 0;
+            inventory.carrots = 0;
+            inventory.potatoes = 0;
+
+            userData[JSONTitle].farmInventory = inventory;
+            userData[JSONTitle].userAmount = userBalance;
+            userData[JSONTitle].farmInventoryValue = inventoryValue;
+    
+            fs.writeFile("Storage/userData.JSON", JSON.stringify(userData), (err) => {
+                if (err) console.error(err);
+            })
+        }
+    
     }
     //#endregion
 });
