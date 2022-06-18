@@ -9,7 +9,7 @@ let userData = JSON.parse(fs.readFileSync("Storage/userData.json", "utf8"));
 let prefix = "?";
 
 function format(amount) {
-    return amount.toFixed(0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 bot.on("message", msg => {
@@ -35,67 +35,10 @@ bot.on("message", msg => {
         timeRemaining = 0;
     }
 
-    // GAMES
-    let cfWins = userData[JSONTitle].userCFWins;
-    if (!cfWins) cfWins = 0;
-
-    let cfLosses = userData[JSONTitle].userCFLosses;
-    if (!cfLosses) cfLosses = 0;
-
-    let rpsWins = userData[JSONTitle].userRPSWins;
-    if (!rpsWins) rpsWins = 0;
-
-    let rpsLosses = userData[JSONTitle].userRPSLosses;
-    if (!rpsLosses) rpsLosses = 0;
-
     userData[JSONTitle].userAmount = userBalance;
     userData[JSONTitle].bankAmount = bankBalance;
     userData[JSONTitle].cooldownDaily = timeRemaining;
     userData[JSONTitle].lastUpdatedDaily = lastDaily;
-
-    // GAMES
-    userData[JSONTitle].userCFWins = cfWins;
-    userData[JSONTitle].userCFLosses = cfLosses;
-    userData[JSONTitle].userRPSWins = rpsWins;
-    userData[JSONTitle].userRPSLosses = rpsLosses;
-
-    // farm game
-    let level = userData[JSONTitle].farmLevel;
-    if (!level) level = 0;
-
-    let currentXP = userData[JSONTitle].farmCurrentXP;
-    if (!currentXP) currentXP = 0;
-
-    let XPReq = userData[JSONTitle].farmXPReq;
-    if (!XPReq) XPReq = 100;
-
-    let inventory = userData[JSONTitle].farmInventory;
-    if (!inventory) inventory = {wheat: 0, carrots: 0, potatoes: 0};
-
-    let inventoryValue = userData[JSONTitle].farmInventoryValue;
-    if (!inventoryValue) inventoryValue = 0;
-
-    let plantMax = userData[JSONTitle].farmPlantMax;
-    if (!plantMax) plantMax = {wheat: 10, carrots: 10, potatoes: 10 };
-
-    let plantBaseXP = userData[JSONTitle].farmBaseXP;
-    if (!plantBaseXP) plantBaseXP = {wheat: 1, carrots: 2, potatoes: 3 };
-
-    let plantBaseSellPrice = userData[JSONTitle].farmBaseSellPrice;
-    if (!plantBaseSellPrice) plantBaseSellPrice = {wheat: 1, carrots: 2, potatoes: 3 };
-
-    let totalMoney = userData[JSONTitle].farmTotalMoney;
-    if (!totalMoney) totalMoney = 0;
-
-
-    userData[JSONTitle].farmLevel = level;
-    userData[JSONTitle].farmCurrentXP = currentXP;
-    userData[JSONTitle].farmXPReq = XPReq;
-    userData[JSONTitle].farmInventory = inventory;
-    userData[JSONTitle].farmInventoryValue = inventoryValue;
-    userData[JSONTitle].farmPlantMax = plantMax;
-    userData[JSONTitle].farmBaseXP = plantBaseXP;
-
 
 
     fs.writeFile("Storage/userData.JSON", JSON.stringify(userData), (err) => {
@@ -329,7 +272,10 @@ bot.on("message", msg => {
         else if (depositAmount == "half") depositAmount = userBalance / 2;
         else if (depositAmount == "quarter") depositAmount = userBalance / 4;
         else if (depositAmount == "eighth") depositAmount = userBalance / 8;
-        else if (Number.isNaN(depositAmount)) msg.channel.send("Please enter a valid deposit amount!");
+        else if (isNaN(parseInt(depositAmount))) {
+            msg.channel.send("Please enter a valid deposit amount!");
+            return;
+        }
 
         if (depositAmount < 0) {
             msg.channel.send("You can't deposit negative money :rage:");
@@ -338,11 +284,6 @@ bot.on("message", msg => {
 
         if (depositAmount > userBalance || userBalance == 0) {
             msg.channel.send("**" + msg.author.username + "**, you don't have enough money in your balance to deposit!"); 
-            return;
-        }
-
-        if (!depositAmount) {
-            msg.channel.send("Invalid command!\nPlease use this format !deposit [depositAmount/all/half/quarter/eighth]");
             return;
         }
 
@@ -372,7 +313,10 @@ bot.on("message", msg => {
         else if (withdrawAmount == "half") withdrawAmount = userBalance / 2;
         else if (withdrawAmount == "quarter") withdrawAmount = userBalance / 4;
         else if (withdrawAmount == "eighth") withdrawAmount = userBalance / 8;
-        else if (Number.isNaN(withdrawAmount)) msg.channel.send("Please enter a valid withdraw amount!");
+        else if (isNaN(parseInt(withdrawAmount))) {
+            msg.channel.send("Please enter a valid withdraw amount!");
+            return;
+        }
 
         if (withdrawAmount < 0) {
             msg.channel.send("You can't withdraw negative money :rage:");
@@ -382,28 +326,6 @@ bot.on("message", msg => {
         if (withdrawAmount > bankBalance || userBalance == 0) {
             msg.channel.send("**" + msg.author.username + "**, you don't have enough money in your bank to withdraw!"); 
             return;
-        }
-    
-        if (!withdrawAmount) {
-            msg.channel.send("Invalid command!\nPlease use this format !withdraw [withdrawAmount/all/half/quarter/eighth]");
-            return;
-        }
-    
-        switch(withdrawAmount) {
-            case "all":
-                withdrawAmount = userBalance;
-                break;
-            case "half":
-                withdrawAmount = userBalance / 2;
-                break;
-            case "quarter":
-                withdrawAmount = userBalance / 4;
-                break;
-            case "eighth":
-                withdrawAmount = userBalance / 8;
-                break;
-            default:
-                withdrawAmount = parseInt(args[0]);
         }
     
         userBalance += withdrawAmount;
@@ -465,12 +387,6 @@ bot.on("message", msg => {
 
     // minigame commands
     //#region
-    // stats
-    if (msg.content === prefix + "stats") {
-        msg.channel.send("**" + msg.author.username + "**'s Game Stats:\n" +
-        "Coinflip: **" + format(cfWins) + "W - " + format(cfLosses) + "L**\n" +
-        "Rock Paper Scissors: **" + format(rpsWins) + "W - " + format(rpsLosses) + "L**");
-    }
 
     // cf
     if (msg.content.startsWith(prefix + "cf")) {
@@ -486,7 +402,10 @@ bot.on("message", msg => {
         else if (betAmount == "half") betAmount = userBalance / 2;
         else if (betAmount == "quarter") betAmount = userBalance / 4;
         else if (betAmount == "eighth") betAmount = userBalance / 8;
-        else if (Number.isNaN(betAmount)) msg.channel.send("Please enter a valid bet amount!");
+        else if (isNaN(parseInt(betAmount))) {
+            msg.channel.send("Please enter a valid bet amount!");
+            return;
+        }
 
         if (betAmount < 0) {
             msg.channel.send("You can't bet negative money :rage:");
@@ -503,10 +422,8 @@ bot.on("message", msg => {
         
         if (result) {
             userBalance += betAmount * 2;
-            cfWins++;
         } else {
             userBalance -= betAmount;
-            cfLosses++;
         } 
 
         if (playerInput == "h") {
@@ -523,8 +440,6 @@ bot.on("message", msg => {
             "**.\nYou " + resultText + " it all :(");
         }
 
-        userData[JSONTitle].userCFWins = cfWins;
-        userData[JSONTitle].userCFLosses = cfLosses;
         userData[JSONTitle].userAmount = userBalance;
 
         fs.writeFile("Storage/userData.JSON", JSON.stringify(userData), (err) => {
@@ -546,9 +461,7 @@ bot.on("message", msg => {
         else if (betAmount == "half") betAmount = userBalance / 2;
         else if (betAmount == "quarter") betAmount = userBalance / 4;
         else if (betAmount == "eighth") betAmount = userBalance / 8;
-        else if (Number.isNaN(betAmount)) msg.channel.send("Please enter a valid bet amount!");
-    
-        if (Number.isNaN(betAmount)) {
+        else if (isNaN(parseInt(betAmount))) {
             msg.channel.send("Please enter a valid bet amount!");
             return;
         }
@@ -579,13 +492,11 @@ bot.on("message", msg => {
                 "Computer move: Scissors\n" +
                 "Rock smashes scissors! You win **$" + winAmount + "**!");
                 userBalance += winAmount;
-                rpsWins++;
             } else if (computerMove == "p") {
                 msg.channel.send("Computer move: Paper\n" +
                 "Player move: Rock\n" +
                 "Paper covers rock! You lose **$" + loseAmount + "**:(");
                 userBalance -= loseAmount;
-                rpsLosses++;
             }
         } else if (playerMove == "p") {
             if (computerMove == "r") {
@@ -593,13 +504,11 @@ bot.on("message", msg => {
                 "Computer move: Rock\n" +
                 "Paper covers rock! You win **$" + winAmount + "**!");
                 userBalance += winAmount;
-                rpsWins++;
             } else if (computerMove == "s") {
                 msg.channel.send("Computer move: Scissors\n" +
                 "Player move: Paper\n" +
                 "Scissors cuts paper! You lose **$" + loseAmount + "**:(");
                 userBalance -= loseAmount;
-                rpsLosses++;
             }
         } else if (playerMove == "s"){
             if (computerMove == "p") {
@@ -607,18 +516,14 @@ bot.on("message", msg => {
                 "Computer move: Paper\n" +
                 "Scissors cuts paper! You win **$" + winAmount + "**!");
                 userBalance += winAmount;
-                rpsWins++;
             } else if (computerMove == "r") {
                 msg.channel.send("Computer move: Rock\n" +
                 "Player move: Scissors\n" +
                 "Rock smashes scissors! You lose **$" + loseAmount + "**:(");
                 userBalance -= loseAmount;
-                rpsLosses++;
             }
         }
     
-        userData[JSONTitle].userRPSWins = rpsWins;
-        userData[JSONTitle].userRPSLosses = rpsLosses;
         userData[JSONTitle].userAmount = userBalance;
             
         fs.writeFile("Storage/userData.JSON", JSON.stringify(userData), (err) => {
@@ -626,12 +531,12 @@ bot.on("message", msg => {
         })
     }
 
-    // bj
-    if (msg.content.startsWith(prefix + "bj")) {
+    // slots
+    if (msg.content.startsWith(prefix + "slots")) {
         let betAmount = args[0];
 
         if (!betAmount) {
-            msg.channel.send("Please use this format !bj [betAmount|all|half|quarter|eighth]");
+            msg.channel.send("Please use this format " + prefix + "slots [betAmount/all/half/quarter/eighth");
             return;
         }
 
@@ -639,7 +544,10 @@ bot.on("message", msg => {
         else if (betAmount == "half") betAmount = userBalance / 2;
         else if (betAmount == "quarter") betAmount = userBalance / 4;
         else if (betAmount == "eighth") betAmount = userBalance / 8;
-        else if (Number.isNaN(betAmount)) msg.channel.send("Please enter a valid bet amount!");
+        else if (isNaN(parseInt(betAmount))) {
+            msg.channel.send("Please enter a valid bet amount!");
+            return;
+        }
 
         if (betAmount < 0) {
             msg.channel.send("You can't bet negative money :rage:");
@@ -647,213 +555,134 @@ bot.on("message", msg => {
         }
 
         if (betAmount > userBalance || userBalance == 0) {
-            msg.channel.send("**" + msg.author.username + "**, you don't have enough money in your balance!"); 
+            msg.channel.send("**" + msg.author.username + "**, you don't have enough money in your balance!");
             return;
         }
 
-        let userHand = {};
+        let emojis = [`:cherries:`, `:grapes:`, `:melon:`, `:seven:`];
+        let borderMiddle = "``|        |``";
+        let borderBottom = "``|        |``";
+        var possibleFails = [
+            `${emojis[0]} ${emojis[1]} ${emojis[2]}`,
+            `${emojis[0]} ${emojis[1]} ${emojis[3]}`,
+            `${emojis[0]} ${emojis[2]} ${emojis[3]}`,
+            `${emojis[0]} ${emojis[2]} ${emojis[1]}`,
+            `${emojis[0]} ${emojis[3]} ${emojis[2]}`,
+            `${emojis[0]} ${emojis[3]} ${emojis[1]}`,
+      
+            `${emojis[1]} ${emojis[0]} ${emojis[2]}`,
+            `${emojis[1]} ${emojis[0]} ${emojis[3]}`,
+            `${emojis[1]} ${emojis[2]} ${emojis[0]}`,
+            `${emojis[1]} ${emojis[2]} ${emojis[3]}`,
+            `${emojis[1]} ${emojis[3]} ${emojis[0]}`,
+            `${emojis[1]} ${emojis[3]} ${emojis[2]}`,
+      
+            `${emojis[2]} ${emojis[0]} ${emojis[3]}`,
+            `${emojis[2]} ${emojis[0]} ${emojis[1]}`,
+            `${emojis[2]} ${emojis[1]} ${emojis[0]}`,
+            `${emojis[2]} ${emojis[1]} ${emojis[3]}`,
+            `${emojis[2]} ${emojis[3]} ${emojis[0]}`,
+            `${emojis[2]} ${emojis[3]} ${emojis[1]}`,
+      
+            `${emojis[0]} ${emojis[3]} ${emojis[2]}`,
+            `${emojis[0]} ${emojis[3]} ${emojis[1]}`,
+            `${emojis[0]} ${emojis[1]} ${emojis[2]}`,
+            `${emojis[0]} ${emojis[1]} ${emojis[3]}`,
+            `${emojis[0]} ${emojis[2]} ${emojis[3]}`,
+            `${emojis[0]} ${emojis[2]} ${emojis[1]}`
+          ];
+        var possibleDoubles = [
+            `${emojis[0]} ${emojis[0]} ${emojis[2]}`,
+            `${emojis[0]} ${emojis[0]} ${emojis[1]}`,
+            `${emojis[0]} ${emojis[0]} ${emojis[3]}`,
+            `${emojis[0]} ${emojis[1]} ${emojis[0]}`,
+            `${emojis[0]} ${emojis[3]} ${emojis[0]}`,
+            `${emojis[0]} ${emojis[2]} ${emojis[0]}`,
+            `${emojis[3]} ${emojis[0]} ${emojis[0]}`,
+            `${emojis[2]} ${emojis[0]} ${emojis[0]}`,
+            `${emojis[1]} ${emojis[0]} ${emojis[0]}`,
+      
+            `${emojis[2]} ${emojis[2]} ${emojis[0]}`,
+            `${emojis[2]} ${emojis[2]} ${emojis[1]}`,
+            `${emojis[2]} ${emojis[2]} ${emojis[3]}`,
+            `${emojis[2]} ${emojis[1]} ${emojis[2]}`,
+            `${emojis[2]} ${emojis[0]} ${emojis[2]}`,
+            `${emojis[2]} ${emojis[3]} ${emojis[2]}`,
+            `${emojis[0]} ${emojis[2]} ${emojis[2]}`,
+            `${emojis[1]} ${emojis[2]} ${emojis[2]}`,
+            `${emojis[3]} ${emojis[2]} ${emojis[2]}`,
+      
+            `${emojis[0]} ${emojis[0]} ${emojis[3]}`,
+            `${emojis[0]} ${emojis[0]} ${emojis[1]}`,
+            `${emojis[0]} ${emojis[0]} ${emojis[2]}`,
+            `${emojis[0]} ${emojis[1]} ${emojis[0]}`,
+            `${emojis[0]} ${emojis[2]} ${emojis[0]}`,
+            `${emojis[0]} ${emojis[3]} ${emojis[0]}`,
+            `${emojis[1]} ${emojis[0]} ${emojis[0]}`,
+            `${emojis[2]} ${emojis[0]} ${emojis[0]}`,
+            `${emojis[3]} ${emojis[0]} ${emojis[0]}`,
+      
+            `${emojis[1]} ${emojis[1]} ${emojis[0]}`,
+            `${emojis[1]} ${emojis[1]} ${emojis[3]}`,
+            `${emojis[1]} ${emojis[1]} ${emojis[2]}`,
+            `${emojis[1]} ${emojis[0]} ${emojis[1]}`,
+            `${emojis[1]} ${emojis[2]} ${emojis[1]}`,
+            `${emojis[1]} ${emojis[3]} ${emojis[1]}`,
+            `${emojis[0]} ${emojis[1]} ${emojis[1]}`,
+            `${emojis[2]} ${emojis[1]} ${emojis[1]}`,
+            `${emojis[3]} ${emojis[1]} ${emojis[1]}`
+          ];
+        let possibleTriples = [
+            `${emojis[2]} ${emojis[2]} ${emojis[2]}`,
+            `${emojis[0]} ${emojis[0]} ${emojis[0]}`,
+            `${emojis[1]} ${emojis[1]} ${emojis[1]}`,
+          ];
+        let jackpot = `${emojis[3]} ${emojis[3]} ${emojis[3]}`;
 
-        for (let i = 1; i < 6; i++) {
-            userHand[i] = Math.floor(Math.random() * (11 - 2) + 2); 
-            if (i > 2) userHand[i] = 0;
+        let message = "";
+
+        let roll = Math.random() * 100;
+
+        if (roll <= 65) {
+            message += "**" + sender.username + "**, you rolled trash!\n";
+            message += "**``___SLOTS___``**\n" + possibleFails[Math.floor(Math.random() * (possibleFails.length))] + "\n" +borderMiddle + "\n" + borderBottom + "\n";
+            message += "You lost $__**" + format(Math.round(betAmount)) + "**__!";
+            userBalance -= betAmount;
+            msg.channel.send(message);
+        } else if (roll > 99) { // JACKPOT
+            let winAmount = betAmount * 10;
+            message += "**" + sender.username + "**, you hit the jackpot!\n";
+            message += "**``___SLOTS___``**\n" + jackpot + "\n" +
+            borderMiddle + "\n" 
+            + borderBottom;
+            message += "You won $__**" + format(Math.round(winAmount)) + "**__!";
+            userBalance += winAmount;
+            msg.channel.send(message);
+        } else if (roll > 89) { // Triple
+            let winAmount = betAmount * 3;
+            message += "**" + sender.username + "**, you rolled a triple!\n";
+            message += "**``___SLOTS___``**\n" + possibleTriples[Math.floor(Math.random() * (possibleTriples.length))] + "\n" + borderMiddle + "\n" + borderBottom + "\n";
+            message += "You won $__**" + format(Math.round(winAmount)) + "**__!";
+            userBalance += winAmount;
+            msg.channel.send(message);
+        } else { // DOUBLE
+            let winAmount = betAmount * 2;
+            message += "**" + sender.username + "**, you rolled a double!\n";
+            message += "**``___SLOTS___``**\n" + possibleDoubles[Math.floor(Math.random() * (possibleDoubles.length))] + "\n" + borderMiddle + "\n" + borderBottom + "\n";
+            message += "You won $__**" + format(Math.round(winAmount)) + "**__!";
+            userBalance += winAmount;
+            msg.channel.send(message);
         }
 
-        let userHandSum = 0;
-
-        for (let i = 1; i < 6; i++) {
-            userHandSum += userHand[i];
-        }
-
-        let computerHand = {};
-
-        for (let i = 1; i < 6; i++) {
-            computerHand[i] = Math.floor(Math.random() * (11 - 2) + 2); 
-            if (i > 1) computerHand[i] = 0;
-        }
-
-        let computerHandSum = 0;
-
-        for (let i = 1; i < 6; i++) {
-            computerHandSum += computerHand[i];
-        }
-
-        const InProgressBJEmbed = new MessageEmbed()
-            .setColor("#0099ff")
-            .setAuthor({name: "**" + sender.username + ", you bet " + betAmount + "** to play Blackjack", iconURL: sender.avatarURL()})
-            .addFields(
-                { name: "**Dealer [**" + computerHandSum + "+?]", value: JSON.stringify(computerHand) },
-                { name: "**" + sender.username + " [**" + userHandSum + "]", value: JSON.stringify(userHand) }
-            )
-            .setFooter({ text: "Game is in progress..." });
-
-        const userWinBJEmbed = new MessageEmbed()
-            .setColor("#0099ff")
-            .setAuthor({name: "**" + sender.username + ", you bet " + betAmount + "** to play Blackjack", iconURL: sender.avatarURL()})
-            .addFields(
-                { name: "**Dealer [**" + computerHandSum + "]", value: JSON.stringify(computerHand) },
-                { name: "**" + sender.username + " [**" + userHandSum + "]", value: JSON.stringify(userHand) }
-            )
-            .setFooter({ text: "You won **$" + betAmount + "**!" });
-
-        const userLostBJEmbed = new MessageEmbed()
-            .setColor("#0099ff")
-            .setAuthor({name: "**" + sender.username + ", you bet " + betAmount + "** to play Blackjack", iconURL: sender.avatarURL()})
-            .addFields(
-                { name: "**Dealer [**" + computerHandSum + "]", value: JSON.stringify(computerHand) },
-                { name: "**" + sender.username + " [**" + userHandSum + "]", value: JSON.stringify(userHand) }
-            )
-            .setFooter({ text: "You lost **$" + betAmount + "** :(" });
-
-
-        msg.channel.send(InProgressBJEmbed);
-
-
-        if (userHandSum == 21) {
-            msg.channel.send(userWinBJEmbed);  
-            return;
-        } else if (userHandSum > 21) {
-            msg.channel.send(userLostBJEmbed);  
-            return;
-        }
-
-    }
-    //#endregion
-
-    // farm game commands
-    //#region 
-    if (msg.content === prefix + "inv") {
-        inventoryValue = (plantBaseSellPrice.wheat * inventory.wheat) + (plantBaseSellPrice.carrots * inventory.carrots) + (plantBaseSellPrice.potatoes * inventory.potatoes);
-        fame = Math.floor(150 * Math.sqrt(totalMoney/1e4));
-        const invEmbed = new MessageEmbed()
-            .setColor("#0099ff")
-            .setTitle("Farming Simulator")
-            .setThumbnail(sender.avatarURL())
-            .addFields(
-                {
-                    name: 
-                        sender.username + "'s Info", value: "Balance: __**$" + userBalance + "**__\n" +
-                        "Fame: " + fame + "\n" +
-                        "**Level " + level + "**, " + Math.floor(currentXP) + "/" + Math.round(XPReq) + " XP to next level.\n"
-                },
-                {
-                    name: 
-                        "Produce", value: inventory.wheat + " Wheat\n" +
-                        inventory.carrots + " Carrots\n" +
-                        inventory.potatoes + " Potatoes\n" +
-                        "Inventory Value: __**$" + inventoryValue + "**__"
-                },
-            );
-        msg.channel.send(invEmbed);
-    }
-
-    if (msg.content === prefix + "farm") {
-        let numRoll = Math.floor(Math.random() * (3 - 1) + 1); // 1, 2, 3
-        let wheatRoll = Math.floor(Math.random() * (plantMax.wheat - 1) + 1);
-        let carrotsRoll = Math.floor(Math.random() * (plantMax.carrots - 1) + 1);
-        let potatoesRoll = Math.floor(Math.random() * (plantMax.potatoes - 1) + 1);
-        let XPGained = 0;
-        
-        if (numRoll == 0) {
-            XPGained = wheatRoll * plantBaseXP.wheat;
-            inventory.wheat += wheatRoll;
-            currentXP += XPGained;
-            userData[JSONTitle].farmInventory = inventory;
-            userData[JSONTitle].farmCurrentXP = currentXP;
-            if (currentXP >= XPReq) {
-                currentXP -= XPReq;
-                level++;
-                XPReq = 100 * Math.pow(1.15, level);
-                userData[JSONTitle].farmCurrentXP = currentXP;
-                userData[JSONTitle].farmLevel = level;
-                userData[JSONTitle].farmXPReq = XPReq;
-            }
-            text = wheatRoll + " Wheat\n +" + XPGained + " XP!"
-        } else if (numRoll == 1) {
-            XPGained = (wheatRoll * plantBaseXP.wheat) + (carrotsRoll * plantBaseXP.carrots);
-            inventory.wheat += wheatRoll;
-            inventory.carrots += carrotsRoll;
-            currentXP += XPGained;
-            userData[JSONTitle].farmInventory = inventory;
-            userData[JSONTitle].farmCurrentXP = currentXP;
-            if (currentXP >= XPReq) {
-                currentXP -= XPReq;
-                level++;
-                XPReq = 100 * Math.pow(1.15, level);
-                userData[JSONTitle].farmCurrentXP = currentXP;
-                userData[JSONTitle].farmLevel = level;
-                userData[JSONTitle].farmXPReq = XPReq;
-            }
-            text = wheatRoll + " Wheat\n" + carrotsRoll + " Carrots\n+" + XPGained + " XP!"
-        } else {
-            XPGained = (wheatRoll * plantBaseXP.wheat) + (carrotsRoll * plantBaseXP.carrots) + (potatoesRoll * plantBaseXP.potatoes);
-            inventory.wheat += wheatRoll;
-            inventory.carrots += carrotsRoll;
-            inventory.potatoes += potatoesRoll;
-            currentXP += XPGained;
-            userData[JSONTitle].farmInventory = inventory;
-            userData[JSONTitle].farmCurrentXP = currentXP;
-            if (currentXP >= XPReq) {
-                currentXP -= XPReq;
-                level++;
-                XPReq = 100 * Math.pow(1.15, level);
-                userData[JSONTitle].farmCurrentXP = currentXP;
-                userData[JSONTitle].farmLevel = level;
-                userData[JSONTitle].farmXPReq = XPReq;
-            }
-            text = wheatRoll + " Wheat\n" + carrotsRoll + " Carrots\n" + potatoesRoll + " Potatoes\n" + "+" + XPGained + " XP!"
-        }
+        userData[JSONTitle].userAmount = userBalance;
 
         fs.writeFile("Storage/userData.JSON", JSON.stringify(userData), (err) => {
             if (err) console.error(err);
         })
-
-        const farmEmbed = new MessageEmbed()
-            .setColor("#0099ff")
-            .setTitle("Farming Simulator")
-            .setThumbnail(sender.avatarURL())
-            .addFields(
-                { name: "**You gained**:", value: text }
-            );
-        msg.channel.send(farmEmbed);
     }
 
-    if (msg.content === prefix + "sell") {
-        inventoryValue = (plantBaseSellPrice.wheat * inventory.wheat) + (plantBaseSellPrice.carrots * inventory.carrots) + (plantBaseSellPrice.potatoes * inventory.potatoes);
-
-        if (inventoryValue == 0) {
-            msg.channel.send("You have no produce to sell! Do ?farm to get some produce!");
-            return;
-        }
-
-        if (inventoryValue > 0) {
-            userBalance += inventoryValue;
-            totalMoney += inventoryValue;
-
-            const sellEmbed = new MessageEmbed()
-                .setColor("#0099ff")
-                .setTitle("Farming Simulator")
-                .setThumbnail(sender.avatarURL())
-                .addFields(
-                    { name: "Produce Sold!", value: "You sold your produce for __**$" + inventoryValue + "**__!\n" + "You now have __**$" + userBalance + "**__!" },
-                );
-            msg.channel.send(sellEmbed);
-
-            inventoryValue = 0;
-            inventory.wheat = 0;
-            inventory.carrots = 0;
-            inventory.potatoes = 0;
-
-            userData[JSONTitle].farmInventory = inventory;
-            userData[JSONTitle].userAmount = userBalance;
-            userData[JSONTitle].farmInventoryValue = inventoryValue;
-    
-            fs.writeFile("Storage/userData.JSON", JSON.stringify(userData), (err) => {
-                if (err) console.error(err);
-            })
-        }
-    
-    }
     //#endregion
+
 });
 
 
