@@ -12,7 +12,7 @@ function format(amount) {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-bot.on("message", msg => {
+bot.on("message", async msg => {
     if (!msg.content.startsWith(prefix)) return;
 
     let cont = msg.content.slice(1).split(" ");
@@ -679,6 +679,165 @@ bot.on("message", msg => {
         fs.writeFile("Storage/userData.JSON", JSON.stringify(userData), (err) => {
             if (err) console.error(err);
         })
+    }
+
+    // bj
+    if (msg.content.startsWith(prefix + "bj")) {
+        let betAmount = args[0];
+
+        if (!betAmount) {
+            msg.channel.send("Please use this format " + prefix + "bj [betAmount/all/half/quarter/eighth");
+            return;
+        }
+
+        if (betAmount == "all") betAmount = userBalance;
+        else if (betAmount == "half") betAmount = userBalance / 2;
+        else if (betAmount == "quarter") betAmount = userBalance / 4;
+        else if (betAmount == "eighth") betAmount = userBalance / 8;
+        else if (isNaN(parseInt(betAmount))) {
+            msg.channel.send("Please enter a valid bet amount!");
+            return;
+        }
+
+        if (betAmount < 0) {
+            msg.channel.send("You can't bet negative money :rage:");
+            return;
+        }
+
+        if (betAmount > userBalance || userBalance == 0) {
+            msg.channel.send("**" + msg.author.username + "**, you don't have enough money in your balance!");
+            return;
+        }
+
+        function generateRandom() {
+            return Math.floor(Math.random() * 10) + 1;
+        }
+    
+        let playerHand = [generateRandom(), generateRandom()];
+        let dealerHand = [generateRandom(), "?"];
+
+        function printPlayerHand() {
+            for (let i = 0; i < playerHand.length; i++) {
+                if (i == 0) playerHandMessage += playerHand[i];
+                else playerHandMessage += ' + ' + playerHand[i];
+            }
+        }
+
+        function printDealerHand() {
+            for (let i = 0; i < dealerHand.length; i++) {
+                if (i == 0) dealerHandMessage += dealerHand[i];
+                else dealerHandMessage += ' + ' + dealerHand[i];
+            }
+        }
+
+        let playerHandMessage = "";
+        let dealerHandMessage = "";
+        let gameFinished = false;
+    
+        let playerHandSum = 0;
+        let dealerHandSum = `${dealerHand[0]}`;
+    
+        function calculatePlayerHandSum() {
+            for (let i = 0; i < playerHand.length; i++) {
+                playerHandSum += playerHand[i];
+            }
+        }
+    
+        function calculateDealerHandSum() {
+            for (let i = 0; i < dealerHand.length; i++) {
+                dealerHandSum += dealerHand[i];
+            }
+        }
+    
+        printPlayerHand();
+        printDealerHand();
+        calculatePlayerHandSum();
+
+        let gameStateMessage = "Game is in progress";
+        let winAmount = betAmount * 2;
+        let hitEmoji = "👊";
+        let standEmoji = "🛑";
+
+        const filter = (reaction, user) => {
+            return (reaction.emoji.name === hitEmoji || reaction.emoji.name === standEmoji) && user.id === msg.author.id;
+        };
+        
+        const collector = msg.createReactionCollector({ filter, time: 15000 });
+        
+        collector.on('collect', (reaction) => {
+            msg.channel.send("Success5!");
+            if (reaction.emoji.name === hitEmoji) {
+                msg.channel.send("Success!");
+                hit();
+            } else if (reaction.emoji.name === stopEmoji) {
+                stand();
+                msg.channel.send("Success1!");
+            }
+        });
+
+        function editEmbed() {
+            message.edit({ embeds: [bjEmbed] });
+        }
+
+        function checkPlayerGameState() {
+            if (playerHandSum == 21) {
+                gameFinished = true;
+                gameStateMessage = `You got $${winAmount} for winning!`;
+                userBalance += winAmount;
+            } else if (playerHandSum > 21) {
+                gameFinished = true;
+                gameStateMessage = `You lost $${betAmount} :(`;
+                userBalance -= betAmount;
+            }
+        }
+
+        function checkDealerGameState() {
+            if (dealerHandSum == 21) {
+                gameFinished = true;
+                gameStateMessage = `You lost $${betAmount} :(`;
+                userBalance -= betAmount;
+            } else if (dealerHandSum > 21) {
+                gameFinished = true;
+                gameStateMessage = `You got $${winAmount} for winning!`;
+                userBalance += winAmount;
+            }
+        }
+
+        function hit() {
+            if (gameFinished) return;
+
+            msg.channel.send("Success2");
+            playerHand.push(generateRandom());
+            printPlayerHand();
+            checkPlayerGameState();
+            editEmbed();
+        }
+        
+        function stand() {
+            if (gameFinished) return;
+            msg.channel.send("Success3");
+
+            while (dealerSum < 17) {
+                dealerHand.push(generateRandom());
+                calculateDealerHandSum();
+                printDealerHand();
+                checkDealerGameState();
+                editEmbed();
+            }
+        }
+    
+        const bjEmbed = new MessageEmbed()
+            .setColor("#0099ff")
+            .setThumbnail(sender.avatarURL())
+            .setDescription(sender.username + ", you bet $" + betAmount + " to play Blackjack!")
+            .addFields(
+                { name: "Dealer [" + dealerHandSum + "]", value: dealerHandMessage, inline: true },
+                { name: sender.username + " [" + playerHandSum + "]", value: playerHandMessage, inline: true },
+            )
+            .setFooter(gameStateMessage);
+            const embedMessage = await msg.channel.send({ embed: bjEmbed });
+            await embedMessage.react("👊");
+            await embedMessage.react("🛑");
     }
 
     //#endregion
